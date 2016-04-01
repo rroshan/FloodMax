@@ -1,9 +1,9 @@
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
-import java.util.PriorityQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.PriorityBlockingQueue;
 
 public class Process implements Runnable
 {
@@ -11,7 +11,7 @@ public class Process implements Runnable
 	ArrayList<Link> neighborLinks;
 	private BlockingQueue<Message> qMaster, qRound;
 
-	private PriorityQueue<Message> qIn;
+	private PriorityBlockingQueue<Message> qIn;
 
 	private final char READY = 'R';
 	private final char NEW_ROUND = 'N';
@@ -41,7 +41,7 @@ public class Process implements Runnable
 		this.id = id;
 		neighborLinks = new ArrayList<Link>();
 
-		qIn = new PriorityQueue<Message>(11, new Comparator<Message>() {
+		qIn = new PriorityBlockingQueue<Message>(11, new Comparator<Message>() {
 			@Override
 			public int compare(Message msg1, Message msg2)
 			{
