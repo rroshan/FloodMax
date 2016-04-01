@@ -51,7 +51,7 @@ public class Master
 
 		for(int i = 0; i < numberOfProcesses; i++)
 		{
-			readyMsg = new Message(id[i], 'R', Integer.MIN_VALUE, 'X');
+			readyMsg = new Message(null, 'R', Integer.MIN_VALUE, Integer.MIN_VALUE, null, Integer.MIN_VALUE);
 			masterQueue.add(readyMsg);
 
 			/*
@@ -129,7 +129,7 @@ public class Master
 		while(it.hasNext())
 		{
 			blkq = it.next();
-			msg = new Message(masterProcessId, 'N', Integer.MIN_VALUE, 'X');
+			msg = new Message(null, 'N', Integer.MIN_VALUE, Integer.MIN_VALUE, null, Integer.MIN_VALUE);;
 			blkq.add(msg);
 		}
 	}
@@ -156,9 +156,6 @@ public class Master
 
 	public static void main(String[] args)
 	{
-		System.out.println(args[0]);
-		System.out.println(args[1]);
-		System.out.println(args[2]);
 		//accept input from input.dat
 		int masterProcessId = 0;
 		
@@ -183,6 +180,7 @@ public class Master
 		for(int i = 0; i < n; i++)
 		{
 			processes[i] = new Process(id[i]);
+			processes[i].setQRound(masterProcess.getRoundQueue().get(i));
 		}
 		
 		Link link;
@@ -197,17 +195,24 @@ public class Master
 				if(tempNeighbor[j].equals("1"))
 				{
 					link = new Link(processes[i], processes[j]);
+					System.out.println(processes[i].getId()+"--->"+processes[j].getId());
 					processes[i].addLink(link);
 					processes[j].addLink(link);
 				}
 			}
 		}
 		
+		for(int i = 0; i < n; i++)
+		{
+			System.out.println("Calling initialize");
+			processes[i].initialize();
+		}
+		
 		//TODO
 		//add ur id to outlist
 
 		//starting all the threads
-		/*Thread[] t = new Thread[n];
+		Thread[] t = new Thread[n];
 		for(int i = 0; i < n; i++)
 		{
 			//reference for the queue to which processes will write ready for next round
@@ -215,12 +220,12 @@ public class Master
 			t[i] = new Thread(processes[i]);
 
 			t[i].start();
-		}*/
+		}
 
 		/*
 		 * keep looping till HS algorithm is completed
 		 */
-		/*while(!masterProcess.isCompleted())
+		while(!masterProcess.isCompleted())
 		{
 			if(masterProcess.validateNewRoundStart())
 			{
@@ -242,7 +247,7 @@ public class Master
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-		}*/
+		}
 
 		System.out.println("Completed!!");
 	}

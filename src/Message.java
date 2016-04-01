@@ -25,17 +25,18 @@ public class Message
 	private int msgId;
 	private Process to;
 	private Process from;
-	
+	private int id;
 	//TODO
 	//change type, from, to, ts
 
-	public Message(Process from, char type, int msgId, int ts, Process to)
+	public Message(Process from, char type, int msgId, int ts, Process to, int id)
 	{
 		this.from = from;
 		this.type = type;
 		this.msgId = msgId;
 		this.ts = ts;
 		this.to = to;
+		this.id = id;
 	}
 
 	public char getType() {
@@ -78,9 +79,16 @@ public class Message
 		this.from = from;
 	}
 
+	public int getId() {
+		return id;
+	}
+
+	public void setId(int id) {
+		this.id = id;
+	}
+
 	public String toString()
 	{
-		return "Process ID:"+from.getId()+" Type:"+type+" Msg ID: "+msgId+" Time Stamp "+ts+" To:"+to.getId();
-
+		return "Process ID:"+from.getId()+" Type:"+type+" Msg ID: "+msgId+" Time Stamp "+ts+" To:"+to.getId()+" ID:"+id;
 	}
 }
