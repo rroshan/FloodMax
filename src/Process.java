@@ -16,7 +16,7 @@ public class Process implements Runnable
 	private final char READY = 'R';
 	private final char NEW_ROUND = 'N';
 	private final char EXPLORE = 'E';
-	private final char ACCEPT = 'A';
+	private final char ACK = 'A';
 	private final char REJECT = 'J';
 	private final char EXP_COMPLETED = 'C';
 	private final char LEADER = 'L';
@@ -29,6 +29,7 @@ public class Process implements Runnable
 	private int exploreCount;
 	private int rejectCount;
 	private int exploreCompletedCount;
+	private int ackCount;
 	private boolean leaderFound;
 	private boolean exploreCompleted;
 
@@ -63,6 +64,8 @@ public class Process implements Runnable
 		leaderFound = false;
 
 		exploreCompleted = false;
+
+		ackCount = 0;
 	}
 
 	public void initialize()
@@ -132,7 +135,6 @@ public class Process implements Runnable
 			{
 				//roundNo++;
 				exploreFlag = false;
-				//System.out.println(id+" "+outList.toString());
 				Iterator<Message> it = outList.iterator();
 				Message sendMsg;
 				while(it.hasNext())
@@ -144,7 +146,7 @@ public class Process implements Runnable
 					{
 						if(sendMsg.getTo() == link.getNeighbor(this))
 						{
-							System.out.println(id+ " Writing "+sendMsg+ " to "+link.getNeighbor(this).getId()+ " at round "+roundNo);
+							//System.out.println(id+ " Writing "+sendMsg+ " to "+link.getNeighbor(this).getId()+ " at round "+roundNo);
 							link.getNeighbor(this).writeToQueueIn(sendMsg);
 						}
 					}
@@ -159,7 +161,7 @@ public class Process implements Runnable
 				try
 				{
 					latch.await();
-					System.out.println(id+" notified "+roundNo);
+					//System.out.println(id+" notified "+roundNo);
 				}
 				catch (InterruptedException e)
 				{
@@ -176,21 +178,21 @@ public class Process implements Runnable
 				{
 					while(qIn.size() > 0)
 					{
-						System.out.println(id+" peeking"+qIn.peek()+ " at round "+roundNo);
+						//System.out.println(id+" peeking"+qIn.peek()+ " at round "+roundNo);
 						if(qIn.peek().getTs() == roundNo)
 						{
-							System.out.println(id+ " round matched at round "+roundNo);
+							//System.out.println(id+ " round matched at round "+roundNo);
 							m1 = qIn.remove();
-							System.out.println(id+" Processing msg "+m1);
+							//System.out.println(id+" Processing msg "+m1);
 
 							//System.out.println(m1+" in round "+roundNo);
 
 							if(m1.getType() == EXPLORE)
 							{
-								System.out.println(id+" Message of type EXPLORE");
+								//System.out.println(id+" Message of type EXPLORE");
 								if(m1.getId() > largestSeenSoFar)
 								{
-									System.out.println(id+" id > largestSeenSoFar");
+									//System.out.println(id+" id > largestSeenSoFar");
 									exploreFlag = true;
 
 									if(parent != null)
@@ -199,34 +201,49 @@ public class Process implements Runnable
 										rejectList.add(parent);
 									}
 
-									System.out.println(id+"largestSeenSoFar before: "+largestSeenSoFar);
+									//System.out.println(id+"largestSeenSoFar before: "+largestSeenSoFar);
 									largestSeenSoFar = m1.getId();
 									parent = m1.getFrom();
-									System.out.println(id+"largestSeenSoFar after: "+largestSeenSoFar);
+									//System.out.println(id+" new parent "+parent);
+									//System.out.println(id+"largestSeenSoFar after: "+largestSeenSoFar);
 								}
 								else if((m1.getId() < largestSeenSoFar))
 								{
-									System.out.println(id+" id == largestSeenSoFar");
+									//System.out.println(id+" id == largestSeenSoFar");
 									//send reject
 									rejectList.add(m1.getFrom());
 								}
 								else
 								{
-									for(Link l : neighborLinks)
+									if(m1.getId() == m1.getFrom().getId())
 									{
-										if(l.getNeighbor(this) == m1.getFrom())
+										for(Link l : neighborLinks)
 										{
-											msg = new Message(this, EXP_COMPLETED, msgId++, l.getTs(this, roundNo), l.getNeighbor(this), largestSeenSoFar);
-											outList.add(msg);
+											if(l.getNeighbor(this) == m1.getFrom())
+											{
+												msg = new Message(this, ACK, msgId++, l.getTs(this, roundNo), l.getNeighbor(this), largestSeenSoFar);
+												outList.add(msg);
+											}
+										}
+									} 
+									else
+									{
+										for(Link l : neighborLinks)
+										{
+											if(l.getNeighbor(this) == m1.getFrom())
+											{
+												msg = new Message(this, REJECT, msgId++, l.getTs(this, roundNo), l.getNeighbor(this), largestSeenSoFar);
+												outList.add(msg);
+											}
 										}
 									}
-									//System.out.println(id+" id < largestSeenSoFar..ignoring");
-									//ignore
+									
 								}
 							}
 							else if(m1.getType() == REJECT)
 							{
 								//need to process
+
 								rejectCount++;
 							}
 							else if(m1.getType() == EXP_COMPLETED)
@@ -235,10 +252,17 @@ public class Process implements Runnable
 								exploreCompletedCount++;
 								children.add(m1.getFrom());
 							}
+							else if(m1.getType() == ACK)
+							{
+								//add him as child
+								//System.out.println(id+ " Ack received "+m1.getId());
+								ackCount++;
+								//System.out.println(id+ " Ack after "+m1.getId());
+							}
 							else if(m1.getType() == LEADER)
 							{
-								System.out.println("Leader is: "+m1.getId());
-								System.out.println("Parent:-------------------------------->"+parent.toString());
+								System.out.println(id+" Leader is: "+m1.getId());
+								System.out.println(id+ " Parent:-------------------------------->"+parent.toString());
 								System.out.println(id+" Children:------------------------------>"+children.toString());
 								for(Process child : children)
 								{
@@ -266,14 +290,14 @@ public class Process implements Runnable
 			//send explore to all neighbors except parent
 			if(exploreFlag)
 			{
-				System.out.println(id+" INside exploreFlag");
+				//System.out.println(id+" INside exploreFlag");
 				for(Link l : neighborLinks)
 				{
 					if(l.getNeighbor(this) != parent)
 					{
-						System.out.println(id+" sending explore to "+l.getNeighbor(this).getId());
+						//System.out.println(id+" sending explore to "+l.getNeighbor(this).getId());
 						msg = new Message(this, EXPLORE, msgId++, l.getTs(this, roundNo), l.getNeighbor(this), largestSeenSoFar);
-						System.out.println(id+" explore phase..msg "+msg);
+						//System.out.println(id+" explore phase..msg "+msg);
 						outList.add(msg);
 						exploreCount++;
 					}
@@ -287,22 +311,23 @@ public class Process implements Runnable
 				{
 					if(l.getNeighbor(this) == p)
 					{
-						System.out.println(id+" sending reject to "+l.getNeighbor(this).getId());
+						//System.out.println(id+" sending reject to "+l.getNeighbor(this).getId());
 						msg = new Message(this, REJECT, msgId++, l.getTs(this, roundNo), l.getNeighbor(this), largestSeenSoFar);
-						System.out.println(id+" reject phase..msg "+msg);
+						//System.out.println(id+" reject phase..msg "+msg);
 						outList.add(msg);
 					}
 				}
 			}
 			rejectList.clear();
 
-			System.out.println(id+" exploreCount "+exploreCount);
+			/*System.out.println(id+" exploreCount "+exploreCount);
 			System.out.println(id+" exploreCompletedCount "+exploreCompletedCount);
 			System.out.println(id+" rejectCount "+rejectCount);
+			System.out.println(id+" ackCount "+ackCount);*/
 
 			if(exploreCount == (exploreCompletedCount + rejectCount) && rejectCount > 0 && !exploreCompleted)
 			{
-				System.out.println(id+" Case matched for interior node");
+				//System.out.println(id+" Case matched for interior node");
 				//add to outlist expcompleted
 				for(Link l : neighborLinks)
 				{
@@ -315,10 +340,10 @@ public class Process implements Runnable
 					}
 				}
 			}
-			else if(exploreCount == exploreCompletedCount && !leaderFound)
+			else if(exploreCount == (exploreCompletedCount + ackCount) && !leaderFound)
 			{
 				System.out.println(id+" I'm leader");
-				System.out.println(id+" Case matched for root node");
+				//System.out.println(id+" Case matched for root node");
 				//put to outlist children
 				for(Process child : children)
 				{
@@ -334,7 +359,7 @@ public class Process implements Runnable
 
 				leaderFound = true;
 			}
-			
+
 			roundNo++;
 
 			Message ready = null;
@@ -348,9 +373,12 @@ public class Process implements Runnable
 			}
 
 			//sending token to neighbors
-			try {
+			try
+			{
 				qMaster.put(ready);
-			} catch (InterruptedException e) {
+			}
+			catch (InterruptedException e)
+			{
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}

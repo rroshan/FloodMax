@@ -204,7 +204,7 @@ public class Master
 		
 		for(int i = 0; i < n; i++)
 		{
-			System.out.println("Calling initialize");
+			//System.out.println("Calling initialize");
 			processes[i].initialize();
 		}
 		
